@@ -18,34 +18,6 @@ IplImage* GetThresholdedImage(IplImage* imgHSV){
     return imgThresh;
 }
 
-void trackObject(IplImage* imgThresh, IplImage* realImage){
-    // Calculate the moments of 'imgThresh'
-    CvMoments *moments = (CvMoments*)malloc(sizeof(CvMoments));
-    cvMoments(imgThresh, moments, 1);
-    double moment10 = cvGetSpatialMoment(moments, 1, 0);
-    double moment01 = cvGetSpatialMoment(moments, 0, 1);
-    double area = cvGetCentralMoment(moments, 0, 0);
-
-    if(area>100){
-        int posX = moment10/area;
-        int posY = moment01/area;
-
-        if(posX >= 0 && posY >= 0)
-        {
-            // Draw a pink line from the previous point to the current point
-            cvLine(realImage, cvPoint(posX-10, posY), cvPoint(posX+10, posY), cvScalar(255,0,255), 4);
-            cvLine(realImage, cvPoint(posX, posY+10), cvPoint(posX, posY-10), cvScalar(255,0,255), 4);
-
-            /* TODO
-             * ====
-             * To improve certainty that the goal was found, check for the black line and the red LED vertically straight from
-             * the center point.
-             */
-        }
-    }
-    free(moments);
-}
-
 void setwindowSettings(){
  cvNamedWindow("Video");
  cvNamedWindow("Ball");
@@ -75,7 +47,6 @@ int main(){
         cvCvtColor(destination, imgHSV, CV_BGR2HSV);
 
         IplImage* imgThresh = GetThresholdedImage(imgHSV);
-        //trackObject(imgThresh, destination);
 
         cvShowImage("Ball", imgThresh);
         cvShowImage("Video", destination);
