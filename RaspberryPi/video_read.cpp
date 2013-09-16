@@ -7,14 +7,24 @@ using namespace cv;
 using namespace std;
 
 #define RGBMode true
+#define STRICTMode true
 
 int lowerH, lowerS, lowerV, upperH, upperS, upperV;
 
 void setColors(int mode)
 {
-    if (mode == 0)
+    if (mode == 0) // goal
     {
-        if(RGBMode)
+        if(STRICTMode)
+        {
+            lowerH=97;
+            lowerS=167;
+            lowerV=233;
+
+            upperH=144;
+            upperS=255;
+            upperV=255;
+        } else if(RGBMode)
         {
             // RGB Values
             lowerH=0;
@@ -34,22 +44,42 @@ void setColors(int mode)
             upperS=256;
             upperV=256;
         }
-    } else if(mode == 1)
+    } else if(mode == 1) // red ball
     {
-        lowerH=0;
-        lowerS=0;
-        lowerV=90;
-        upperH=23;
-        upperS=0;
-        upperV=180;
-    } else if(mode == 2)
+        if(STRICTMode)
+        {
+            lowerH=1;
+            lowerS=0;
+            lowerV=90;
+            upperH=13;
+            upperS=0;
+            upperV=120;
+        } else {
+            lowerH=0;
+            lowerS=0;
+            lowerV=90;
+            upperH=23;
+            upperS=0;
+            upperV=180;
+        }
+    } else if(mode == 2) // blue ball
     {
-        lowerH=26;
-        lowerS=0;
-        lowerV=0;
-        upperH=189;
-        upperS=61;
-        upperV=57;
+        if(STRICTMode)
+        {
+            lowerH=50;
+            lowerS=0;
+            lowerV=9;
+            upperH=85;
+            upperS=27;
+            upperV=28;
+        } else {
+            lowerH=26;
+            lowerS=0;
+            lowerV=0;
+            upperH=189;
+            upperS=61;
+            upperV=57;
+        }
     }
 }
 
@@ -141,10 +171,10 @@ int main(int argc, char** argv)
     setColors(0);
     setwindowSettings();
 
-    string filename = "v4.mp4";
+    string filename = "../Test Videos/IMG_1228.mp4";
     Mat frame, half, thresh;
     int mode = 0;
-
+    bool pause = false;
     for(;;)
     {
         VideoCapture capture(filename);
@@ -152,8 +182,11 @@ int main(int argc, char** argv)
             throw "Error when reading video";
         for(;;)
         {
-            capture >> frame;
-            if(frame.empty()) break;
+            if(!pause)
+            {
+                capture >> frame;
+                if(frame.empty()) break;
+            }
             resize(frame, half, Size(320,240));
 
             // ---- Start Image Proc ---- //
@@ -176,6 +209,7 @@ int main(int argc, char** argv)
                 case 49: mode = 0; setColors(mode); break; // goal capture
                 case 50: mode = 1; setColors(mode); break; // red ball tracking
                 case 51: mode = 2; setColors(mode); break; // blue ball tracking
+                case 32: pause = !pause;
             }
         }
     }
