@@ -6,8 +6,9 @@
 using namespace cv;
 using namespace std;
 
-#define RGBMode true
+#define RGBMode false
 #define STRICTMode true
+#define useMorphOps false    // uses morphological operations -- CPU intensive but increases object id accuracy
 
 int lowerH, lowerS, lowerV, upperH, upperS, upperV;
 
@@ -88,6 +89,36 @@ Mat threshold(Mat img){
  inRange(img, Scalar(lowerH,lowerS,lowerV), Scalar(upperH,upperS,upperV), imgThresh);
  return imgThresh;
 }
+/*
+ * This function should talk to the arduino
+ */
+void positionCommand(int x)
+{
+    if(x < 100)
+    {
+        // go left
+    } else if(x < 220)
+    {
+        // walk forward
+    } else {
+        // go right
+    }
+}
+
+void morphOps(Mat &thresh)
+{
+    //create structuring element that will be used to "dilate" and "erode" image.
+    //the element chosen here is a 3px by 3px rectangle
+    Mat erodeElement = getStructuringElement( MORPH_RECT,Size(3,3));
+    //dilate with larger element so make sure object is nicely visible
+    Mat dilateElement = getStructuringElement( MORPH_RECT,Size(8,8));
+
+    erode(thresh,thresh,erodeElement);
+    erode(thresh,thresh,erodeElement);
+
+    dilate(thresh,thresh,dilateElement);
+    dilate(thresh,thresh,dilateElement);
+}
 
 void trackGoalMoment(Mat imgThresh, Mat realImage){
     Moments m = moments(imgThresh, true);
@@ -100,6 +131,7 @@ void trackGoalMoment(Mat imgThresh, Mat realImage){
         if(posX >= 0 && posY >= 0)
         {
             rectangle( realImage, cvPoint(posX-50, posY-20), cvPoint(posX+50, posY+20), cvScalar(255,0,255), -1);
+            positionCommand(posX);
         }
 
     }
@@ -116,6 +148,7 @@ void trackBallMoment(Mat imgThresh, Mat realImage){
         if(posX >= 0 && posY >= 0)
         {
             circle( realImage, cvPoint(posX, posY), m.m00/200, cvScalar(255,0,255), -1);
+            positionCommand(posX);
         }
     }
 }
@@ -135,17 +168,11 @@ void trackGoal(Mat img, Mat thresh)
     imshow("Ball", thresh);
 }
 
-void trackRedBall(Mat img, Mat thresh)
+void trackBall(Mat img, Mat thresh)
 {
     thresh = threshold(img);
-    trackBallMoment(thresh, img);
-    imshow("Video", img);
-    imshow("Ball", thresh);
-}
-
-void trackBlueBall(Mat img, Mat thresh)
-{
-    thresh = threshold(img);
+    if(useMorphOps)
+        morphOps(thresh);
     trackBallMoment(thresh, img);
     imshow("Video", img);
     imshow("Ball", thresh);
@@ -188,19 +215,21 @@ int main(int argc, char** argv)
                 if(frame.empty()) break;
             }
             resize(frame, half, Size(320,240));
+            // uncomment this line if using RGB images but converting to YUV color space
+            //cvtColor(half, half, CV_RGB2YUV);
 
-            // ---- Start Image Proc ---- //
+            // ---- Start Image Processing ---- //
             if(mode == 0)
             {
                 trackGoal(half, thresh);
             } else if(mode == 1)
             {
-                trackRedBall(half, thresh);
+                trackBall(half, thresh);
             } else if(mode == 2)
             {
-                trackBlueBall(half, thresh);
+                trackBall(half, thresh);
             }
-            // ---- Finish Image Proc --- //
+            // ---- Finish Image Processing --- //
 
             int c = waitKey(50); // waits to display frame
             switch(c)
