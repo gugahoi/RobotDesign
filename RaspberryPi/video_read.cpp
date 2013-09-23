@@ -173,6 +173,21 @@ void trackBall(Mat img, Mat thresh)
     thresh = threshold(img);
     if(useMorphOps)
         morphOps(thresh);
+    //Point2i topPixel, bottomPixel;
+    //for(int x=0; x < img.size().width; x++)
+    //{
+        //for(int y=0; y < img.size().height; y++)
+        //{
+            ////cout << thresh.at<int>(x,y) << endl;
+            //if(thresh.at<int>(x,y) != 0)
+            //{
+                //topPixel.x = x;
+                //topPixel.y = y;
+                //break; break;
+            //}
+        //}
+    //}
+    //cout << topPixel.x << " - " << topPixel.y << endl;
     trackBallMoment(thresh, img);
     imshow("Video", img);
     imshow("Ball", thresh);
