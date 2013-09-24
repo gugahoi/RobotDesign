@@ -44,7 +44,7 @@ typedef enum {OPEN, CLOSE} servoGate;
 typedef enum {LEFT, RIGHT, BOTH} servoLocation;
 void ctrlServo(servoLocation location, servoGate gate);
 
-typedef enum {FRONT, FLOOR} servoCamera;
+typedef enum {FRONT, BALL, FLOOR} servoCamera;
 void ctrlServoCamera(servoCamera angle);
 
 

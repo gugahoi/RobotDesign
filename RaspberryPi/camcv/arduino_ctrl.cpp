@@ -106,24 +106,30 @@ void ctrlServo(servoLocation location, servoGate gate)
 			if (gate == CLOSE) {
 				i2c.send(reinterpret_cast<unsigned char*>(_inputServoLeftClose), strlen(reinterpret_cast<const char*>(_inputServoLeftClose)));
 				i2c.send(reinterpret_cast<unsigned char*>(_inputServoRightClose), strlen(reinterpret_cast<const char*>(_inputServoRightClose)));
-			} else {
+			} else if (gate == OPEN){
 				i2c.send(reinterpret_cast<unsigned char*>(_inputServoLeftOpen), strlen(reinterpret_cast<const char*>(_inputServoLeftOpen)));
 				i2c.send(reinterpret_cast<unsigned char*>(_inputServoRightOpen), strlen(reinterpret_cast<const char*>(_inputServoRightOpen)));
-			}
+			} else {
+                cout << "UNKNOWN GATE" << endl;
+            }
 		break;
 		case LEFT:
 			if (gate == CLOSE) {
 				i2c.send(reinterpret_cast<unsigned char*>(_inputServoLeftClose), strlen(reinterpret_cast<const char*>(_inputServoLeftClose)));
-			} else {
+			} else if (gate == OPEN) {
 				i2c.send(reinterpret_cast<unsigned char*>(_inputServoLeftOpen), strlen(reinterpret_cast<const char*>(_inputServoLeftOpen)));
-			}
+			} else {
+                cout << "UNKNOWN GATE" << endl;
+            }
 		break;
 		case RIGHT:
 			if (gate == CLOSE) {
 				i2c.send(reinterpret_cast<unsigned char*>(_inputServoRightClose), strlen(reinterpret_cast<const char*>(_inputServoRightClose)));
-			} else {
+			} else if (gate == OPEN) {
 				i2c.send(reinterpret_cast<unsigned char*>(_inputServoRightOpen), strlen(reinterpret_cast<const char*>(_inputServoRightOpen)));
-			}
+			} else {
+                cout << "UNKNOWN GATE" << endl;
+            }
 		break;
 		default:
 			cout << "ERROR! Unknown servo position chosen: ctrlServo called" << endl;
@@ -132,8 +138,9 @@ void ctrlServo(servoLocation location, servoGate gate)
 }
 
 
-unsigned char _inputServoFront[8] = "7 90";
-unsigned char _inputServoFloor[8] = "7 150";
+unsigned char _inputServoFront[8] = "7 1";
+unsigned char _inputServoBall[8] = "7 2";
+unsigned char _inputServoFloor[8] = "7 3";
 
 void ctrlServoCamera(servoCamera angle)
 {
@@ -142,8 +149,11 @@ void ctrlServoCamera(servoCamera angle)
 		i2c.send(reinterpret_cast<unsigned char*>(_inputServoFront), strlen(reinterpret_cast<const char*>(_inputServoFront)));
 		break;
 		case FLOOR:
-		default:
 		i2c.send(reinterpret_cast<unsigned char*>(_inputServoFloor), strlen(reinterpret_cast<const char*>(_inputServoFloor)));
+		break;
+		case BALL:
+		default:
+		i2c.send(reinterpret_cast<unsigned char*>(_inputServoBall), strlen(reinterpret_cast<const char*>(_inputServoBall)));
 	}
 }
 
