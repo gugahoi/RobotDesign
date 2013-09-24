@@ -33,12 +33,14 @@ Sample call:
     Board size: 25 x 24 mm (not including flex cable)
 */
 
+#include "arduino_ctrl.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <memory.h>
-#include <cv.h>
-#include <highgui.h>
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 #include <time.h>
 #include <semaphore.h>
 
@@ -211,13 +213,19 @@ void drawObject(int x, int y, Mat &frame)
     int xDistance = x - (FRAME_WIDTH / 2);
     int yDistance = y - (FRAME_HEIGHT / 2);
     putText(frame, intToString(xDistance) + "," + intToString(yDistance), Point(x, y + 30), 1, 1, Scalar(0, 255, 0), 2);
-    if (abs(xDistance) > 40)
+    if (xDistance < -60)
     {
-        instruction = (xDistance < 0) ? "Need to turn left" : "Need to turn right";
+        //go left
+        instruction = "Left";
+    } else if (xDistance > 60)
+    {
+        //go right
+        instruction = "Right ";
+    } else {
+        //go straight
+        instruction = "Straight";
     }
     putText(frame, instruction, Point (20, 20), 1, 1, Scalar(255, 255, 0));
-    //cout << "(" << (x - (FRAME_WIDTH / 2)) << "," << (y - (FRAME_HEIGHT / 2)) << ") (v,h) pixels from center" << endl;
-
 }
 
 // Morphological Operations //
@@ -625,6 +633,7 @@ int main(int argc, char *argv[])
     default_status(&state);
 
     // init windows and OpenCV Stuff
+    ctrlInit();
     cvNamedWindow("Video", CV_WINDOW_AUTOSIZE);
     if (debug) cvNamedWindow("Black", CV_WINDOW_AUTOSIZE);
     dstImage = cvCreateImage(cvSize(FRAME_WIDTH, FRAME_HEIGHT), IPL_DEPTH_8U, 3);
