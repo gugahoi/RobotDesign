@@ -86,7 +86,7 @@ using namespace std;
 #define MMAL_CAMERA_CAPTURE_PORT 2
 
 // Video format information
-#define VIDEO_FRAME_RATE_NUM 30
+#define VIDEO_FRAME_RATE_NUM 20
 #define VIDEO_FRAME_RATE_DEN 1
 #define VIDEO_GRAYSCALE_MODE 0
 
@@ -105,10 +105,10 @@ int nCount = 0;
 IplImage *py, *pu, *pv, *pu_big, *pv_big, *image, *dstImage, *imgHSV, *imgTracking, *imgThresh;
 
 // Minimum and maximum HSV range
-int Hmin = 0;
-int Smin = 150;
-int Vmin = 200;
-int Hmax = 255;
+int Hmin = 100;
+int Smin = 210;
+int Vmin = 50;
+int Hmax = 200;
 int Smax = 255;
 int Vmax = 255;
 
@@ -127,6 +127,8 @@ char key;
 Mat img, black;
 
 int mode = 0; // 0 find ball, 1 find goal
+bool gateOpen = true;
+
 
 int mmal_status_to_int(MMAL_STATUS_T status);
 
@@ -193,37 +195,56 @@ static void default_status(RASPIVID_STATE *state)
 
 void cameraAngle(int mode)
 {
-    for (int x = 0; x<20; x++) {
+    for (int x=0; x<5; x++) {
         if (mode == 0) {
             ctrlServoCamera(BALL);
         } else {
             ctrlServoCamera(FRONT);
         }
+        waitKey(100);
     }
 }
 
 void closeArms()
 {
-    for (int x=0; x<10; x++) {
-        ctrlServo(RIGHT, CLOSE);
+    for (int x=0; x<5; x++) {
         ctrlServo(LEFT, CLOSE);
+        waitKey(100);
     }
+    gateOpen = false;
 }
 
 void openArms()
 {
-    for (int x=0; x<10; x++) {
-        ctrlServo(RIGHT, OPEN);
-    }
-    for (int x=0; x<10; x++) {
+    for (int x=0; x<5; x++) {
         ctrlServo(LEFT, OPEN);
+        waitKey(100);
+    }
+    gateOpen = true;
+}
+
+void roamOn()
+{
+    for (int x=0; x<5; x++) {
+        ctrlRoam(ROAMON);
+        waitKey(100);
     }
 }
 
+void roamOff()
+{
+    for (int x=0; x<5; x++) {
+        ctrlRoam(ROAMOFF);
+        waitKey(100);
+    }
+}
+
+
 void cameraUp()
 {
-    for (int x=0; x<10; x++) {
+    for (int x=0; x<5; x++) {
         ctrlServoCamera(FRONT);
+        waitKey(100);
     }
 }
 
@@ -250,7 +271,7 @@ string intToString(int number)
     return ss.str();
 }
 
-void kick(int x, int y, Mat &frame)
+void kick(int x, int y)
 {
     int xDistance = x - (FRAME_WIDTH / 2);
     int yDistance = y - (FRAME_HEIGHT / 2);
@@ -264,37 +285,50 @@ void kick(int x, int y, Mat &frame)
         ctrlMotor(RIGHTSMALL);
     } else {
         //if close to goal kick otherwise go forward
-        cout << "Goal is straight forward" << endl;
-        openArms();
+        if(debug) cout << "Goal is straight forward" << endl;
+        if(!gateOpen){
+            openArms();
+            waitKey(500);
+            roamOn();  
+        } 
         ctrlSolenoid(KICK);
         mode = 0;
         searchingGoal = false;
     }   
 }
 
-void ballFind(int x, int y)
+void ballFound(int x, int y)
 {
-    cout << "Ball in frame" << endl;
+    /*if(debug) cout << "Ball in frame" << endl;
+    ctrlRoam(ROAMOFF);
+    if(debug) cout << "Roam off" << endl;
     int xDistance = x - (FRAME_WIDTH / 2);
     int yDistance = y - (FRAME_HEIGHT / 2);
     if (xDistance < -60)
     {
         //go left
+        if(debug) cout << "left" << endl;
         ctrlMotor(LEFTSMALL);
     } else if (xDistance > 60)
     {
         //go right
+        if(debug) cout << "right" << endl;
         ctrlMotor(RIGHTSMALL);
     } else {
+
         //go straight
+        if(debug) cout << "forward" << endl;
+        //ctrlMotor(FORWARD);
         if(yDistance < 100)
         {
-            cout << "Closing arms" << endl;
-            mode = 1;
-            closeArms();
-            ctrlMotor(BRAKE);
-        } else { ctrlMotor(FORWARD); }
+            if(debug) cout << "Closing arms" << endl;
+            //mode = 1;
+            if(gateOpen) closeArms();
+            //ctrlMotor(BRAKE);
+        }
     }
+    */
+
 }
 
 // Morphological Operations //
@@ -310,17 +344,35 @@ void cvClose(const CvArr *src, CvArr *dst, IplConvKernel *element)
     cvErode (src, dst, element, 1);
 }
 // End Morphological Operations //
+int firstFrame = 0;
+void walkKick()
+{
+	if(debug) cout << "Kicking" << endl;
+	openArms();
+	for(int x=0; x<5; x++){
+		ctrlMotor(FORWARD);
+		waitKey(100);
+	}
+
+	for(int x=0; x<5; x++){
+		ctrlMotor(BRAKE);
+		waitKey(100);
+	}
+
+	for(int x=0; x<5; x++){
+		ctrlMotor(BACKWARD);
+		waitKey(100);
+	}
+
+	for(int x=0; x<5; x++){
+		ctrlMotor(BRAKE);
+		waitKey(100);
+	}
+	firstFrame = 0;
+}
 
 void trackBall(IplImage *imgThresh, Mat &cameraFeed)
-{
-    // Morphological Transforms
-    //IplConvKernel *se21 = cvCreateStructuringElementEx(21, 21, 10, 10, CV_SHAPE_RECT, NULL);
-    //IplConvKernel *se11 = cvCreateStructuringElementEx(11, 11, 5,  5,  CV_SHAPE_RECT, NULL);
-    //cvClose(imgThresh, imgThresh, se21);
-    //cvOpen(imgThresh, imgThresh, se11);
-    //cvReleaseStructuringElement(&se21);
-    //cvReleaseStructuringElement(&se11);
-    
+{   
     // Calculate the moments of 'imgThresh'
     CvMoments *moments = (CvMoments *)malloc(sizeof(CvMoments));
     cvMoments(imgThresh, moments, 1);
@@ -328,7 +380,7 @@ void trackBall(IplImage *imgThresh, Mat &cameraFeed)
     double moment01 = cvGetSpatialMoment(moments, 0, 1);
     double area = cvGetCentralMoment(moments, 0, 0);
     
-    if (area > 200)
+    if (area > 1200)
     {
         // calculate the position of the ball
         int posX = moment10 / area;
@@ -336,10 +388,22 @@ void trackBall(IplImage *imgThresh, Mat &cameraFeed)
         
         if (posX > -1 && posY > -1)
         {
-            ballFind(posX, posY);
+            //ballFound(posX, posY);
+            if(gateOpen) {
+                cout << "Ball found, closing arms" << endl;
+                closeArms();
+                waitKey(500);
+                //roamOff();
+		firstFrame = nCount;
+		//walkKick();
+            }
         }
     } else {
-        ctrlMotor(FORWARD);
+        if(!gateOpen){
+            openArms();
+            roamOn();
+        }
+        //ctrlMotor(FORWARD);
         // Change camera angle?
     }
     free(moments);
@@ -356,14 +420,14 @@ void trackGoal(IplImage *imgThresh, Mat &cameraFeed)
     
     if (area > 500)
     {
-        // calculate the position of the ball
+        // calculate the position of the goal
         int posX = moment10 / area;
         int posY = moment01 / area;
         
         if (posX > -1 && posY > -1)
         {
             //goal found
-            kick(posX, posY, cameraFeed);
+            kick(posX, posY);
         }
     }
     free(moments);
@@ -376,6 +440,9 @@ void initGoalSearch()
     searchingGoal = true;
 }
 
+void walkForward(){
+    ctrlMotor(FORWARD);
+}
 /**
  *  buffer header callback function for video
  *
@@ -415,7 +482,17 @@ static void video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffe
                 
                 cvCvtColor(image, dstImage, CV_YCrCb2RGB);  // convert in RGB color space (slow)
                 cvCvtColor(dstImage, imgHSV, CV_RGB2HSV);  // convert in RGB color space (slow)
-                if(mode == 1)
+		
+		if(!gateOpen)
+		{
+			if(debug) cout << "Gate is closed: " << (nCount - firstFrame) << endl;
+			if(firstFrame != 0 & (nCount - firstFrame) > 100)
+			{
+				walkKick();
+			}
+		}
+                
+		/*if(mode == 1)
                 {
                     // Find goal
                     if(!searchingGoal) initGoalSearch();
@@ -426,16 +503,23 @@ static void video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffe
                 else
                 {
                     // Find ball
-                    cameraAngle(0);
+                    //cameraAngle(0);
                     imgThresh = GetThresholdedBall(imgHSV);
                     img = cvarrToMat(dstImage);
                     trackBall(imgThresh, img);
-                }
-                
+                }*/
+
+                imgThresh = GetThresholdedBall(imgHSV);
+                img = cvarrToMat(dstImage);
+                trackBall(imgThresh, img);
+
                 if (debug)
                 {
+                    //imgThresh = GetThresholdedBall(imgHSV);
+                    img = cvarrToMat(dstImage);
                     black = cvarrToMat(imgThresh);
                     imshow("Black", black);
+                    imshow("Video", img);
                 }
             }
             else
@@ -444,8 +528,11 @@ static void video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffe
                 img = cvarrToMat(py);
             }
             
-            if(debug) imshow("Video", img);
+            //if(debug) imshow("Video", img);
             key = (char) waitKey(1);
+            if(debug) cout << nCount << ": Finished processing frame" << endl;
+            //walkForward();
+            //ctrlMotor(BRAKE);
             nCount++;       // count frames displayed
             
             mmal_buffer_header_mem_unlock(buffer);
@@ -719,6 +806,7 @@ int main(int argc, char *argv[])
         if (argc > 2)
         {
             debug = (atoi(argv[2]) == 1 ) ? true : false;
+            cout << debug << endl;
             if (argc > 3)
             {
                 Hmin = atoi(argv[3]);
@@ -752,11 +840,9 @@ int main(int argc, char *argv[])
     // init windows and OpenCV Stuff
     ctrlInit();
     openArms();
-    ctrlServoCamera(BALL);
-    ctrlServoCamera(BALL);
-    ctrlServoCamera(BALL);
+    ctrlServoCamera(FLOOR);
     if(debug) cvNamedWindow("Video", CV_WINDOW_AUTOSIZE);
-    if (debug) cvNamedWindow("Black", CV_WINDOW_AUTOSIZE);
+    if(debug) cvNamedWindow("Black", CV_WINDOW_AUTOSIZE);
     dstImage = cvCreateImage(cvSize(FRAME_WIDTH, FRAME_HEIGHT), IPL_DEPTH_8U, 3);
     py = cvCreateImage(cvSize(FRAME_WIDTH, FRAME_HEIGHT), IPL_DEPTH_8U, 1);      // Y component of YUV I420 frame
     pu = cvCreateImage(cvSize(FRAME_WIDTH / 2, FRAME_HEIGHT / 2), IPL_DEPTH_8U, 1); // U component of YUV I420 frame
@@ -839,8 +925,10 @@ int main(int argc, char *argv[])
     cvReleaseImage(&pu_big);
     cvReleaseImage(&pv_big);
     cvReleaseImage(&imgTracking);
-    cameraAngle(1);
+    //cameraAngle(1);
     closeArms();
+    roamOn();
+
     
     secondsElapsed = difftime(timer_end, timer_begin);
     

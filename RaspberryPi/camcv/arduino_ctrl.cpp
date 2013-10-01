@@ -178,3 +178,19 @@ void ctrlSolenoid(solenoidRod rod)
 			break;
 	}
 }
+
+unsigned char _inputRoamOff[8] = "99";
+unsigned char _inputRoamOn[8] = "98";
+
+void ctrlRoam(roamStatus status)
+{
+	switch (status) {
+		case ROAMOFF:
+			i2c.send(reinterpret_cast<unsigned char*>(_inputRoamOff), strlen(reinterpret_cast<const char*>(_inputRoamOff)));
+			break;
+		case ROAMON:
+			i2c.send(reinterpret_cast<unsigned char*>(_inputRoamOn), strlen(reinterpret_cast<const char*>(_inputRoamOn)));
+			break;
+	}
+
+}

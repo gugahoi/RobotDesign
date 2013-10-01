@@ -52,6 +52,10 @@ typedef enum {PUSH, PULL, KICK} solenoidRod;
 void ctrlSolenoid(solenoidRod rod);
 
 
+typedef enum {ROAMON, ROAMOFF} roamStatus;
+void ctrlRoam(roamStatus status);
+
+
 
 /*
 int main(int argc, char **argv)
